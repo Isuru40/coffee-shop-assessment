@@ -1,0 +1,39 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0
+      author: user
+      runOnChange: true
+      changes:
+        - sql:
+            sql: CREATE SCHEMA IF NOT EXISTS customer_schema;
+            splitStatements: false
+            stripComments: true
+  - changeSet:
+      id: 1
+      author: coffeeshop
+      changes:
+        - createTable:
+            tableName: customers
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: customer_id
+                  type: bigint
+                  constraints:
+                    nullable: false
+              - column:
+                  name: order_history
+                  type: json
+                  constraints:
+                    nullable: true
+              - column:
+                  name: queue_position
+                  type: int
+                  constraints:
+                    nullable: true

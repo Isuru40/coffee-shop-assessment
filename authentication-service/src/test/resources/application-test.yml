@@ -1,0 +1,29 @@
+# H2 in-memory database configuration for tests
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1 # In-memory database, persists during tests
+    driverClassName: org.h2.Driver # H2 JDBC driver
+    username: sa # Default H2 user
+    password: # Empty password
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect # Hibernate dialect for H2
+    hibernate:
+      ddl-auto: create-drop # Create schema at start, drop at end
+    show-sql: true # Log SQL queries
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml # Apply production schema
+
+# JWT configuration for tests
+jwt:
+  secret: testsecure32charsecretkey12345678 # 32-character key for HS256
+  expiration: 86400000 # 24 hours (optional, matches production)
+
+# CORS for frontend testing (optional for MockMvc tests)
+cors:
+  allowed-origins: http://localhost:3000
+
+# Debug logging for troubleshooting
+logging:
+  level:
+    com.coffeeshop.auth_service: DEBUG # Service logs
+    org.hibernate.SQL: DEBUG # SQL logs

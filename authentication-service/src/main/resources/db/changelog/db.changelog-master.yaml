@@ -1,0 +1,55 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0
+      author: user
+      changes:
+        - sql:
+            sql: CREATE SCHEMA IF NOT EXISTS auth_schema;
+            splitStatements: false
+            stripComments: true
+  - changeSet:
+      id: 1
+      author: user
+      changes:
+        - createTable:
+            tableName: users
+            schemaName: auth_schema
+            columns:
+              - column:
+                  name: id
+                  type: serial
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: username
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: password
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_type
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: mobile
+                  type: varchar(20)
+              - column:
+                  name: name
+                  type: varchar(255)
+              - column:
+                  name: address
+                  type: varchar(255)
+              - column:
+                  name: shop_registration_number
+                  type: varchar(50)
+              - column:
+                  name: location
+                  type: varchar(255)
+              - column:
+                  name: contact_details
+                  type: varchar(20)

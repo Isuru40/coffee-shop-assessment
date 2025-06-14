@@ -1,0 +1,17 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/coffeeshop_db
+    username: postgres
+    password: password
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+    show-sql: true
+  liquibase:
+    enabled: false
+
+server:
+  port: 8081

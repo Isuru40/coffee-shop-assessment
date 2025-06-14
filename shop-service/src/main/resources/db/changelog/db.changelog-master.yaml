@@ -1,0 +1,87 @@
+databaseChangeLog:
+  - changeSet:
+      id: 0
+      author: user
+      runOnChange: true
+      changes:
+        - sql:
+            sql: CREATE SCHEMA IF NOT EXISTS shop_schema;
+            splitStatements: false
+            stripComments: true
+  - changeSet:
+      id: 1
+      author: user
+      runOnChange: true
+      changes:
+        - createTable:
+            tableName: shops
+            schemaName: shop_schema
+            columns:
+              - column:
+                  name: id
+                  type: serial
+                  constraints:
+                    primaryKey: true
+              - column:
+                  name: menu
+                  type: jsonb
+                  constraints:
+                    nullable: false
+              - column:
+                  name: queue_count
+                  type: integer
+              - column:
+                  name: max_queue_size
+                  type: integer
+              - column:
+                  name: opening_time
+                  type: time
+              - column:
+                  name: closing_time
+                  type: time
+              - column:
+                  name: version
+                  type: bigint
+              - column:
+                  name: latitude
+                  type: numeric(9,6)  # Changed to numeric(9,6)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: longitude
+                  type: numeric(9,6)  # Changed to numeric(9,6)
+                  constraints:
+                    nullable: true
+  - changeSet:
+      id: 2
+      author: user
+      runOnChange: true
+      changes:
+        - insert:
+            tableName: shops
+            schemaName: shop_schema
+            columns:
+              - column:
+                  name: menu
+                  value: '{"items": [{"name": "Espresso", "price": 3.50}, {"name": "Latte", "price": 4.50}]}'
+              - column:
+                  name: queue_count
+                  value: 1
+              - column:
+                  name: max_queue_size
+                  value: 10
+              - column:
+                  name: opening_time
+                  value: '08:00:00'
+              - column:
+                  name: closing_time
+                  value: '18:00:00'
+              - column:
+                  name: version
+                  value: 0
+              - column:
+                  name: latitude
+                  value: -27.475000  # Brisbane South Bank
+              - column:
+                  name: longitude
+                  value: 153.020000  # Brisbane South Bank
