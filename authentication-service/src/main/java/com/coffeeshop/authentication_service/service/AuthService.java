@@ -1,8 +1,10 @@
 package com.coffeeshop.auth_service.service;
 
 import com.coffeeshop.auth_service.config.JwtUtil;
+import com.coffeeshop.auth_service.entity.Client;
 import com.coffeeshop.auth_service.entity.User;
 import com.coffeeshop.auth_service.exception.UserAlreadyExistsException;
+import com.coffeeshop.auth_service.repository.ClientRepository;
 import com.coffeeshop.auth_service.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -20,6 +23,9 @@ public class AuthService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private ClientRepository clientRepository;
 
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
@@ -34,12 +40,10 @@ public class AuthService {
             throw new IllegalArgumentException("Password must be at least 8 characters long, with at least one uppercase letter, one lowercase letter, and one digit");
         }
 
-        // Check for duplicate username (across all user types)
         if (userRepository.findByUsername(user.getUsername()) != null) {
             throw new UserAlreadyExistsException("User already exists with username: " + user.getUsername());
         }
 
-        // Check for duplicates based on userType
         if ("shop_owner".equalsIgnoreCase(user.getUserType())) {
             if (userRepository.findByShopRegistrationNumber(user.getShopRegistrationNumber()) != null) {
                 throw new UserAlreadyExistsException("User already exists with registration number: " + user.getShopRegistrationNumber());
@@ -50,7 +54,6 @@ public class AuthService {
             }
         }
 
-        // Validate userType
         if (user.getUserType() == null || !("shop_owner".equalsIgnoreCase(user.getUserType()) ||
                 "shop_operator".equalsIgnoreCase(user.getUserType()) || "customer".equalsIgnoreCase(user.getUserType()))) {
             throw new IllegalArgumentException("Invalid userType. Must be shop_owner, shop_operator, or customer");
@@ -88,5 +91,45 @@ public class AuthService {
             logger.error("Token validation failed: {}", e.getMessage());
             return "Token expired or invalid: " + e.getMessage();
         }
+    }
+
+    public Map<String, Object> issueClientToken(String clientId, String clientSecret, String scope) {
+        logger.info("Issuing client token for clientId: {}", clientId);
+        Client client = clientRepository.findByClientId(clientId);
+        if (client == null || !passwordEncoder.matches(clientSecret, client.getClientSecret())) {
+            logger.warn("Invalid client credentials for clientId: {}", clientId);
+            throw new RuntimeException("Invalid client credentials");
+        }
+        logger.info("client credentials validated for clientId: {}", clientId);
+        String[] requestedScopes = scope != null ? scope.split(" ") : new String[]{};
+        String[] allowedScopes = client.getScopes() != null ? client.getScopes().split(" ") : new String[]{};
+        boolean validScope = Arrays.stream(requestedScopes).allMatch(s -> Arrays.asList(allowedScopes).contains(s));
+        if (!validScope) {
+            logger.warn("Invalid scope requested: {} for clientId: {}", scope, clientId);
+            throw new RuntimeException("Invalid scope");
+        }
+
+        String token = jwtUtil.generateToken(clientId);
+        logger.info("Generated client token for clientId: {}", clientId);
+        Map<String, Object> response = new HashMap<>();
+        response.put("access_token", token);
+        response.put("token_type", "Bearer");
+        response.put("expires_in", jwtUtil.getExpiration() / 1000);
+        response.put("scope", scope);
+        return response;
+    }
+
+    public boolean validateUserById(Long userId) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user == null) {
+            logger.warn("User not found with ID: {}", userId);
+            return false;
+        }
+        if (!"customer".equalsIgnoreCase(user.getUserType())) {
+            logger.warn("User ID {} is not a customer: {}", userId, user.getUserType());
+            return false;
+        }
+        logger.info("Validated user ID {} as customer", userId);
+        return true;
     }
 }

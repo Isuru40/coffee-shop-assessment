@@ -17,6 +17,12 @@ server:
   port: 8082
 auth-service:
   url: ${AUTH_SERVICE_URL:http://authentication-service:8085/api/v1/auth/validate}
+  token-url: ${AUTH_TOKEN_URL:http://authentication-service:8085/api/v1/auth/token}
+  client-id: ${AUTH_CLIENT_ID:order-service}
+  client-secret: ${AUTH_CLIENT_SECRET:order-service-secret}
+  scope: ${AUTH_SCOPE:shop.read}
+shop-service:
+  url: ${SHOP_SERVICE_URL:http://shop-service:8084/api/v1/shops}
 logging:
   level:
     org.springframework.web: DEBUG

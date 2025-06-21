@@ -1,18 +1,13 @@
 databaseChangeLog:
   - changeSet:
-      id: 0
-      author: user
+      id: 1
+      author: coffeeshop
       runOnChange: true
       changes:
         - sql:
             sql: CREATE SCHEMA IF NOT EXISTS order_schema;
             splitStatements: false
             stripComments: true
-  - changeSet:
-      id: 1
-      author: coffeeshop
-      runOnChange: true
-      changes:
         - createTable:
             tableName: orders
             schemaName: order_schema
@@ -26,7 +21,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: order_id
-                  type: bigint
+                  type: uuid
                   constraints:
                     nullable: false
               - column:
@@ -45,7 +40,26 @@ databaseChangeLog:
                   constraints:
                     nullable: true
               - column:
+                  name: quantity
+                  type: integer
+                  constraints:
+                    nullable: true
+              - column:
                   name: status
                   type: varchar(50)
                   constraints:
                     nullable: false
+              - column:
+                  name: order_date
+                  type: timestamp
+                  constraints:
+                    nullable: false
+        - createIndex:
+            indexName: idx_customer_id_order_date
+            schemaName: order_schema
+            tableName: orders
+            columns:
+              - column:
+                  name: customer_id
+              - column:
+                  name: order_date

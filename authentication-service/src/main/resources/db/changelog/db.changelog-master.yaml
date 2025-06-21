@@ -53,3 +53,47 @@ databaseChangeLog:
               - column:
                   name: contact_details
                   type: varchar(20)
+  - changeSet:
+      id: 2
+      author: auth_service
+      runOnChange: true
+      changes:
+        - createTable:
+            tableName: clients
+            schemaName: auth_schema
+            columns:
+              - column:
+                  name: id
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: client_id
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: client_secret
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: scopes
+                  type: varchar(255)
+                  constraints:
+                    nullable: true
+  - changeSet:
+      id: 3
+      author: auth_service
+      runOnChange: true
+      changes:
+        - sql:
+            sql: |
+              INSERT INTO auth_schema.clients (client_id, client_secret, scopes)
+              VALUES ('order-service', '$2a$12$J5RIodT8Ffj4rrqrxsQfJeDMU2Qrt7TZj9eWHcNdq1OBnk5ZgREre', 'shop.read')
+              ON CONFLICT (client_id) DO NOTHING;
+            splitStatements: false
+            stripComments: true

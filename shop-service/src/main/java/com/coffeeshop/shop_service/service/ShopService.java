@@ -1,5 +1,7 @@
 package com.coffeeshop.shop_service.service;
 
+import com.coffeeshop.shop_service.entity.Menu;
+import com.coffeeshop.shop_service.entity.MenuItem;
 import com.coffeeshop.shop_service.entity.Shop;
 import com.coffeeshop.shop_service.repository.ShopRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +16,7 @@ import org.springframework.web.client.RestTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.sql.Time;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -21,11 +24,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-// [Keep existing @Service annotation]
 @Service
 public class ShopService {
 
     private static final Logger logger = LoggerFactory.getLogger(ShopService.class);
+    private static final double EARTH_RADIUS_KM = 6371.0;
 
     @Autowired
     private ShopRepository shopRepository;
@@ -36,67 +39,68 @@ public class ShopService {
     @Value("${auth-service.url}")
     private String authServiceUrl;
 
-    private static final double EARTH_RADIUS_KM = 6371.0; // Earth's radius in kilometers
-
     @Transactional
-    public String configureMenu(Long shopId, String menu) {
-        Shop shop = shopRepository.findById(shopId).orElse(null);
-        if (shop == null) {
-            shop = new Shop();
-            shop.setQueueCount(0);
-            shop.setMaxQueueSize(10);
-            try {
-                java.util.Date openingDate = new SimpleDateFormat("HH:mm:ss").parse("08:00:00");
-                java.util.Date closingDate = new SimpleDateFormat("HH:mm:ss").parse("18:00:00");
-                shop.setOpeningTime(new java.sql.Time(openingDate.getTime()));
-                shop.setClosingTime(new java.sql.Time(closingDate.getTime()));
-            } catch (ParseException e) {
-                logger.error("Failed to parse default times: {}", e.getMessage());
-            }
-        }
-        shop.setMenu(menu);
-        shop = shopRepository.save(shop);
-        return "Menu updated for shop " + shop.getId();
-    }
-
-    public Shop getMenu(Long shopId) {
-        return shopRepository.findById(shopId)
-                .orElseThrow(() -> new RuntimeException("Shop not found: " + shopId));
-    }
-
-    @Transactional
-    public String updateMenu(Long shopId, String menu) {
+    public String configureMenu(Long shopId, List<MenuItem> menuItems) {
         Shop shop = shopRepository.findById(shopId)
-                .orElseThrow(() -> new RuntimeException("Shop not found: " + shopId));
-        try {
+                .orElseThrow(() -> new RuntimeException("Shop not found"));
+        Menu menu = shop.getMenu();
+        if (menu == null) {
+            menu = new Menu();
+            menu.setShop(shop);
             shop.setMenu(menu);
-            shopRepository.save(shop);
-            return "Menu updated for shop " + shopId;
-        } catch (Exception e) {
-            logger.error("Error saving menu: {}", e.getMessage());
-            throw new RuntimeException("Invalid menu format: " + e.getMessage());
+            // Save the menu first to generate its ID
+            menu = shopRepository.save(shop).getMenu();
         }
+        // Set and save menuItems with the persisted menu
+        menu.setMenuItems(menuItems);
+        for (MenuItem item : menuItems) {
+            item.setMenu(menu); // Ensure each MenuItem references the persisted Menu
+        }
+        shopRepository.save(shop);
+        return "Menu configured for shop " + shopId;
     }
 
-//    public boolean testAuthConnectivity() {
-//        String testUrl = "http://authentication-service:8085/api/v1/auth/test/auth";
-//        HttpHeaders headers = new HttpHeaders();
-//        HttpEntity<String> entity = new HttpEntity<>(headers);
-//
-//        try {
-//            ResponseEntity<String> response = restTemplate.exchange(
-//                    testUrl,
-//                    HttpMethod.GET,
-//                    entity,
-//                    String.class
-//            );
-//            logger.debug("Auth connectivity test: Status={}, Body={}", response.getStatusCode(), response.getBody());
-//            return response.getStatusCode().is2xxSuccessful() && "auth ok".equals(response.getBody());
-//        } catch (Exception e) {
-//            logger.error("Auth connectivity test failed: {}", e.getMessage());
-//            return false;
-//        }
-//    }
+    @Transactional
+    public String updateMenu(Long shopId, List<MenuItem> menuItems) {
+        Shop shop = shopRepository.findById(shopId)
+                .orElseThrow(() -> new RuntimeException("Shop not found"));
+        Menu menu = shop.getMenu();
+        if (menu == null) {
+            throw new RuntimeException("Menu not found for shop " + shopId);
+        }
+        // Clear existing menuItems to handle orphanRemoval correctly
+        menu.getMenuItems().clear();
+        // Add new menuItems
+        for (MenuItem item : menuItems) {
+            item.setMenu(menu); // Ensure each MenuItem references the existing Menu
+            menu.getMenuItems().add(item);
+        }
+        shopRepository.save(shop);
+        return "Menu updated for shop " + shopId;
+    }
+
+    public Shop getShop(Long shopId) {
+        return shopRepository.findById(shopId)
+                .orElseThrow(() -> new RuntimeException("Shop not found"));
+    }
+
+    @Transactional
+    public Shop createShop(String name, BigDecimal latitude, BigDecimal longitude) {
+        Shop shop = new Shop();
+        shop.setName(name);
+        shop.setQueueCount(0);
+        shop.setMaxQueueSize(10);
+        try {
+            SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss");
+            shop.setOpeningTime(new Time(timeFormat.parse("08:00:00").getTime()));
+            shop.setClosingTime(new Time(timeFormat.parse("18:00:00").getTime()));
+        } catch (ParseException e) {
+            throw new RuntimeException("Error parsing time", e);
+        }
+        shop.setLatitude(latitude);
+        shop.setLongitude(longitude);
+        return shopRepository.save(shop);
+    }
 
     public boolean validateToken(String token) {
         HttpHeaders headers = new HttpHeaders();
@@ -145,7 +149,7 @@ public class ShopService {
         double distance = EARTH_RADIUS_KM * c;
 
         logger.debug("Calculated distance to shop {}: {} km", shopId, distance);
-        return distance; // Distance in kilometers
+        return distance;
     }
 
     public List<Shop> findNearbyShops(double userLat, double userLon, double minDistance, double maxDistance) {

@@ -36,7 +36,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorizeRequests ->
                         authorizeRequests
-                                .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/test/auth").permitAll()
+                                .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login", "/api/v1/auth/test/auth","/api/v1/auth/token").permitAll()
                                 .requestMatchers("/api/v1/auth/validate").authenticated()
                                 .requestMatchers("/api/v1/admin/**").hasRole("shop_owner") // Example role-based access
                                 .anyRequest().authenticated()
